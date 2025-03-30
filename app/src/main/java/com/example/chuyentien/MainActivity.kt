@@ -1,6 +1,9 @@
 package com.example.chuyentien
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import java.text.DecimalFormat
@@ -18,17 +21,16 @@ class MainActivity : AppCompatActivity() {
         val fromCurrencySymbol = findViewById<TextView>(R.id.fromCurrencySymbol)
         val toCurrencySymbol = findViewById<TextView>(R.id.toCurrencySymbol)
 
-        val currencies = listOf(
+        val currencies = listOf("USD", "EUR", "GBP", "JPY", "VND")
+        val currencyNames = listOf(
             "United States - Dollar (USD)",
-            "Euro - EUR",
-            "British Pound - GBP",
-            "Japanese Yen - JPY",
+            "Euro - EUR (EUR)",
+            "British Pound - GBP (GBP)",
+            "Japanese Yen - JPY (JPY)",
             "Vietnam - Dong (VND)"
         )
 
-        val symbols = mapOf(
-            "USD" to "$", "EUR" to "€", "GBP" to "£", "JPY" to "¥", "VND" to "đ"
-        )
+        val symbols = mapOf("USD" to "$", "EUR" to "€", "GBP" to "£", "JPY" to "¥", "VND" to "đ")
 
         val exchangeRates = mapOf(
             "USD" to 1.0,
@@ -38,27 +40,23 @@ class MainActivity : AppCompatActivity() {
             "VND" to 23185.0
         )
 
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, currencies)
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, currencyNames)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         fromCurrencySpinner.adapter = adapter
         toCurrencySpinner.adapter = adapter
 
-        fromCurrencySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: android.view.View?, position: Int, id: Long) {
+        val updateConversionListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
                 updateConversion(amountEditText, resultEditText, fromCurrencySpinner, toCurrencySpinner, exchangeRateTextView, symbols, exchangeRates, fromCurrencySymbol, toCurrencySymbol)
             }
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
 
-        toCurrencySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: android.view.View?, position: Int, id: Long) {
-                updateConversion(amountEditText, resultEditText, fromCurrencySpinner, toCurrencySpinner, exchangeRateTextView, symbols, exchangeRates, fromCurrencySymbol, toCurrencySymbol)
-            }
-            override fun onNothingSelected(parent: AdapterView<*>) {}
-        }
+        fromCurrencySpinner.onItemSelectedListener = updateConversionListener
+        toCurrencySpinner.onItemSelectedListener = updateConversionListener
 
-        amountEditText.addTextChangedListener(object : android.text.TextWatcher {
-            override fun afterTextChanged(s: android.text.Editable?) {
+        amountEditText.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
                 updateConversion(amountEditText, resultEditText, fromCurrencySpinner, toCurrencySpinner, exchangeRateTextView, symbols, exchangeRates, fromCurrencySymbol, toCurrencySymbol)
             }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -77,8 +75,9 @@ class MainActivity : AppCompatActivity() {
         fromCurrencySymbol: TextView,
         toCurrencySymbol: TextView
     ) {
-        val fromCurrency = fromCurrencySpinner.selectedItem.toString().takeLast(4).trim('(', ')')
-        val toCurrency = toCurrencySpinner.selectedItem.toString().takeLast(4).trim('(', ')')
+        val fromCurrency = extractCurrencyCode(fromCurrencySpinner.selectedItem.toString())
+        val toCurrency = extractCurrencyCode(toCurrencySpinner.selectedItem.toString())
+
         fromCurrencySymbol.text = symbols[fromCurrency] ?: "$"
         toCurrencySymbol.text = symbols[toCurrency] ?: "đ"
 
@@ -90,5 +89,9 @@ class MainActivity : AppCompatActivity() {
         val amount = amountEditText.text.toString().toDoubleOrNull() ?: 0.0
         val convertedAmount = amount * exchangeRate
         resultEditText.setText(DecimalFormat("#,##0.00").format(convertedAmount))
+    }
+
+    private fun extractCurrencyCode(currencyText: String): String {
+        return currencyText.split("(").last().replace(")", "").trim()
     }
 }
